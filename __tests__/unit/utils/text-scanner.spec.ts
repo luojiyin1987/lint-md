@@ -68,69 +68,69 @@ describe('TextScanner', () => {
     });
   });
 
-  describe('findAllMatches', () => {
-    it('finds all matches with a global flag', () => {
-      const matches = createScanner('hello world hello').findAllMatches(/hello/g);
+  describe('forEachMatchIndex', () => {
+    it('visits all matches with a global flag', () => {
+      const matches: [number, number][] = [];
+      createScanner('hello world hello')
+        .forEachMatchIndex(/hello/g, (index, length) => matches.push([index, length]));
 
-      expect(matches.map(match => match.index)).toEqual([0, 12]);
+      expect(matches).toEqual([[0, 5], [12, 5]]);
     });
 
     it('adds the global flag when it is absent', () => {
-      const matches = createScanner('hello world hello').findAllMatches(/hello/);
+      const matches: number[] = [];
+      createScanner('hello world hello')
+        .forEachMatchIndex(/hello/, index => matches.push(index));
 
       expect(matches).toHaveLength(2);
     });
 
     it('ignores zero-length matches', () => {
-      const matches = createScanner('abc').findAllMatches(/(\b)/g);
+      const matches: number[] = [];
+      createScanner('abc').forEachMatchIndex(/(\b)/g, index => matches.push(index));
 
       expect(matches).toEqual([]);
     });
 
-    it('returns no matches for an absent value', () => {
-      const matches = createScanner('hello').findAllMatches(/xyz/g);
+    it('does not visit an absent value', () => {
+      const callback = jest.fn();
+      createScanner('hello').forEachMatchIndex(/xyz/g, callback);
 
-      expect(matches).toEqual([]);
+      expect(callback).not.toHaveBeenCalled();
     });
 
-    it('resolves dense matches through SourceCode', () => {
-      const matches = createScanner('aaa').findAllMatches(/a/g);
+    it('does not map matches before the callback requests them', () => {
+      const scanner = createScanner('aaa');
+      const rangeAt = jest.spyOn(scanner, 'rangeAt');
 
-      expect(matches.map(match => match.absoluteRange))
-        .toEqual([[0, 1], [1, 2], [2, 3]]);
-    });
+      scanner.forEachMatchIndex(/a/g, () => {});
 
-    it('resolves matches across newlines', () => {
-      const matches = createScanner('ab\ncd').findAllMatches(/[\s\S]/g);
-
-      expect(matches.map(match => match.absoluteRange))
-        .toEqual([[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]]);
+      expect(rangeAt).not.toHaveBeenCalled();
     });
   });
 
-  describe('findAllOccurrences', () => {
-    it('finds all occurrences', () => {
-      const matches = createScanner('aXaXa').findAllOccurrences('X');
+  describe('forEachOccurrenceIndex', () => {
+    it('visits all occurrences', () => {
+      const matches: [number, number][] = [];
+      createScanner('aXaXa')
+        .forEachOccurrenceIndex('X', (index, length) => matches.push([index, length]));
 
-      expect(matches.map(match => match.index)).toEqual([1, 3]);
+      expect(matches).toEqual([[1, 1], [3, 1]]);
     });
 
-    it('finds overlapping occurrences', () => {
-      const matches = createScanner('aaa').findAllOccurrences('aa');
+    it('visits overlapping occurrences', () => {
+      const matches: number[] = [];
+      createScanner('aaa')
+        .forEachOccurrenceIndex('aa', index => matches.push(index));
 
-      expect(matches.map(match => match.absoluteRange))
-        .toEqual([[0, 2], [1, 3]]);
+      expect(matches).toEqual([0, 1]);
     });
 
-    it('returns no matches for an empty search string', () => {
-      expect(createScanner('hello').findAllOccurrences('')).toEqual([]);
-    });
+    it('does not visit an empty search string', () => {
+      const callback = jest.fn();
+      createScanner('hello').forEachOccurrenceIndex('', callback);
 
-    it('resolves occurrences across newlines', () => {
-      const matches = createScanner('aa\naa').findAllOccurrences('aa');
-
-      expect(matches.map(match => match.absoluteRange))
-        .toEqual([[0, 2], [3, 5]]);
+      expect(callback).not.toHaveBeenCalled();
     });
   });
 

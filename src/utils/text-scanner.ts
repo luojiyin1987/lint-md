@@ -34,12 +34,16 @@ export class TextScanner {
     return this._node;
   }
 
-  matchAt(index: number, length: number): TextMatch {
-    const absoluteRange = this._sourceCode.getTextRange(
+  rangeAt(index: number, length: number): TextRange {
+    return this._sourceCode.getTextRange(
       this._node as MarkdownTextNode as PositionedTextNode | PositionedInlineCodeNode,
       index,
       index + length
     );
+  }
+
+  matchAt(index: number, length: number): TextMatch {
+    const absoluteRange = this.rangeAt(index, length);
     return {
       index,
       length,
@@ -47,8 +51,10 @@ export class TextScanner {
     };
   }
 
-  findAllMatches(regex: RegExp): TextMatch[] {
-    const results: TextMatch[] = [];
+  forEachMatchIndex(
+    regex: RegExp,
+    callback: (index: number, length: number) => void
+  ): void {
     const re = new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : `${regex.flags}g`);
     let matched = re.exec(this._value);
     while (matched !== null) {
@@ -56,27 +62,27 @@ export class TextScanner {
         re.lastIndex++;
       }
       else {
-        results.push(this.matchAt(matched.index, matched[0].length));
+        callback(matched.index, matched[0].length);
       }
       matched = re.exec(this._value);
     }
-    return results;
   }
 
-  findAllOccurrences(searchStr: string): TextMatch[] {
+  forEachOccurrenceIndex(
+    searchStr: string,
+    callback: (index: number, length: number) => void
+  ): void {
     if (!searchStr) {
-      return [];
+      return;
     }
-    const results: TextMatch[] = [];
     for (let start = 0; start < this._value.length;) {
       const index = this._value.indexOf(searchStr, start);
       if (index === -1) {
         break;
       }
-      results.push(this.matchAt(index, searchStr.length));
+      callback(index, searchStr.length);
       start = index + 1;
     }
-    return results;
   }
 
   /** Iterates Unicode code points so an atomic two-unit entity is visited once. */

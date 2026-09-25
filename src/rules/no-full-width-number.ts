@@ -22,18 +22,17 @@ const noFullWidthNumber: LintMdRule = {
     return {
       text: (node: PositionedTextNode) => {
         const scanner = new TextScanner(node, context.sourceCode);
-        const matches = scanner.findAllMatches(/[０-９]+/g);
-
-        matches.forEach((m) => {
-          const replacement = scanner.value.slice(m.index, m.index + m.length)
+        scanner.forEachMatchIndex(/[０-９]+/g, (index, length) => {
+          const range = scanner.rangeAt(index, length);
+          const replacement = scanner.value.slice(index, index + length)
             .split('')
             .map(c => FULL_WIDTH_NUMBER_REPLACEMENT_MAP[c])
             .join('');
 
           context.report({
-            range: m.absoluteRange,
+            range,
             message: '不能用全角数字，请使用半角数字',
-            fix: fixer => fixer.replaceTextRange(m.absoluteRange, replacement)
+            fix: fixer => fixer.replaceTextRange(range, replacement)
           });
         });
       }

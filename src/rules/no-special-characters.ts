@@ -14,13 +14,12 @@ const noSpecialCharacters: LintMdRule = {
         const scanner = new TextScanner(node, context.sourceCode);
 
         SPECIAL_CHARACTERS.forEach((sc) => {
-          const matches = scanner.findAllOccurrences(sc);
-
-          matches.forEach((m) => {
+          scanner.forEachOccurrenceIndex(sc, (index, length) => {
+            const range = scanner.rangeAt(index, length);
             context.report({
-              range: m.absoluteRange,
+              range,
               message: '文本中不能包含特殊字符，请删除或者替换',
-              fix: fixer => fixer.removeRange(m.absoluteRange)
+              fix: fixer => fixer.removeRange(range)
             });
           });
         });
